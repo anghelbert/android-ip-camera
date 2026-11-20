@@ -5,7 +5,7 @@
 
 Turn your Android device into a remote security IP camera
 
-![Desktop Browser](screenshot.webp)
+[![Screenshot](screenshot.webp)](https://github.com/DigitallyRefined/android-ip-camera/tree/main/fastlane/metadata/android/en-US/images/phoneScreenshots)
 
 ## 📲 Install
 
