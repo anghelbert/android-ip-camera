@@ -2598,12 +2598,33 @@ class StreamingService : LifecycleService() {
         if (active) {
             motionStopJob?.cancel()
             motionStopJob = null
-            if (monitor.notifyOnMotion) notifyMotion()
+            if (monitor.notifyOnMotion) {
+                notifyMotion()
+                sendTelegramMotionAlert()
+            }
             if (monitor.recordingOnMotion) {
                 lifecycleScope.launch(Dispatchers.IO) { startMotionRecordingIfNeeded() }
             }
         } else if (monitor.recordingOnMotion) {
             scheduleMotionRecordingStop()
+        }
+    }
+
+    /**
+     * Sends the motion alert with a still to Telegram when configured. Runs on IO: the still can
+     * take a second or two and the upload longer, and neither may delay detection or recording.
+     */
+    private fun sendTelegramMotionAlert() {
+        if (!TelegramNotifier.isConfigured(this)) return
+        val name = PreferenceManager.getDefaultSharedPreferences(this)
+            .getString("onvif_name", "")?.trim()?.takeIf { it.isNotEmpty() }
+            ?: TelegramNotifier.deviceName()
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                TelegramNotifier.sendMotionAlert(this@StreamingService, name) { snapshot(camId()) }
+            } catch (e: Exception) {
+                Log.w(TAG, "Telegram motion alert: ${e.message}")
+            }
         }
     }
 

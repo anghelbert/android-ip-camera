@@ -26,11 +26,15 @@ import com.github.digitallyrefined.androidipcamera.helpers.ListenInterface
 import com.github.digitallyrefined.androidipcamera.helpers.RecordingsHelper
 import com.github.digitallyrefined.androidipcamera.helpers.RtspServer
 import com.github.digitallyrefined.androidipcamera.helpers.SecureStorage
+import com.github.digitallyrefined.androidipcamera.helpers.TelegramMessage
+import com.github.digitallyrefined.androidipcamera.helpers.TelegramNotifier
 import com.github.digitallyrefined.androidipcamera.helpers.TlsHelper
 import com.github.digitallyrefined.androidipcamera.opentunnel.OpenTunnelConfig
 import com.github.digitallyrefined.androidipcamera.opentunnel.OpenTunnelController
 import com.github.digitallyrefined.androidipcamera.opentunnel.OpenTunnelStatus
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -406,6 +410,8 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
 
+            setupTelegramPreferences(secureStorage)
+
             // Configure the video recording storage location (defaults to Movies/AndroidIPCamera)
             findPreference<Preference>("recording_storage_uri")?.apply {
                 summary = recordingStorageSummary()
@@ -503,6 +509,79 @@ class SettingsActivity : AppCompatActivity() {
             openTunnelPollJob?.cancel()
             openTunnelPollJob = null
             super.onPause()
+        }
+
+        /** Telegram motion alerts: token kept in [SecureStorage], chat id and cooldown in prefs. */
+        private fun setupTelegramPreferences(secureStorage: SecureStorage) {
+            findPreference<EditTextPreference>("telegram_bot_token")?.apply {
+                // Like the password, never show the stored token, only whether one is set.
+                summary = if (TelegramNotifier.token(requireContext()).isEmpty()) "Not set" else "***"
+                setOnBindEditTextListener { editText ->
+                    editText.text = null
+                    editText.hint = "123456789:ABC... from @BotFather"
+                    editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                }
+                setOnPreferenceChangeListener { _, newValue ->
+                    val token = newValue.toString().trim()
+                    if (token.isEmpty()) return@setOnPreferenceChangeListener false
+                    if (!TelegramMessage.isValidToken(token)) {
+                        Toast.makeText(requireContext(),
+                            "This does not look like a bot token (format 123456789:ABC...)",
+                            Toast.LENGTH_LONG).show()
+                        return@setOnPreferenceChangeListener false
+                    }
+                    secureStorage.putSecureString(SecureStorage.KEY_TELEGRAM_TOKEN, token)
+                    summary = "***"
+                    false
+                }
+            }
+
+            findPreference<EditTextPreference>(TelegramNotifier.PREF_CHAT_ID)?.apply {
+                summary = text?.takeIf { it.isNotBlank() } ?: "Not set"
+                setOnPreferenceChangeListener { _, newValue ->
+                    val chatId = newValue.toString().trim()
+                    if (chatId.isNotEmpty() && !TelegramMessage.isValidChatId(chatId)) {
+                        Toast.makeText(requireContext(),
+                            "The chat ID is a number (e.g. 123456789, or -100... for groups) or @channelname",
+                            Toast.LENGTH_LONG).show()
+                        return@setOnPreferenceChangeListener false
+                    }
+                    summary = chatId.ifEmpty { "Not set" }
+                    true
+                }
+            }
+
+            findPreference<EditTextPreference>(TelegramNotifier.PREF_COOLDOWN)?.apply {
+                summary = text ?: TelegramNotifier.DEFAULT_COOLDOWN_SECONDS.toString()
+                setOnBindEditTextListener { it.inputType = InputType.TYPE_CLASS_NUMBER }
+                setOnPreferenceChangeListener { _, newValue ->
+                    val seconds = newValue.toString().trim().toIntOrNull()
+                    if (seconds == null || seconds !in 0..86_400) {
+                        Toast.makeText(requireContext(), "Enter a number of seconds between 0 and 86400",
+                            Toast.LENGTH_LONG).show()
+                        return@setOnPreferenceChangeListener false
+                    }
+                    summary = seconds.toString()
+                    true
+                }
+            }
+
+            findPreference<Preference>("telegram_test")?.setOnPreferenceClickListener { pref ->
+                pref.isEnabled = false
+                pref.summary = "Sending..."
+                val appContext = requireContext().applicationContext
+                lifecycleScope.launch {
+                    val result = withContext(Dispatchers.IO) { TelegramNotifier.sendTest(appContext) }
+                    pref.isEnabled = true
+                    pref.summary = if (result.ok) "Sent: check Telegram" else result.message
+                    if (isAdded) {
+                        Toast.makeText(requireContext(),
+                            if (result.ok) "Test message sent" else result.message,
+                            Toast.LENGTH_LONG).show()
+                    }
+                }
+                true
+            }
         }
 
         private fun setupOpenTunnelPreferences() {

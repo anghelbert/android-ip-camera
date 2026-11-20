@@ -35,6 +35,7 @@ alt="Get it on F-Droid" align="center" height="70" /></a>
 * 🖼️ Choose between different image quality settings and frame rates (to help reduce phone over heating)
 * 🛂 Username and password protection
 * 🔐 Automatic TLS certificate support to protect stream and login details via HTTPS/RTSPS
+* 📨 Optional Telegram motion alerts with a photo
 * 🥾 Optional start on boot
 
 ## ⚠️ Warning
@@ -177,6 +178,18 @@ ONVIF lets NVRs and home automation systems discover and control the camera as a
 #### Home Assistant
 
 Add the phone with the **ONVIF** integration (host `https://[phone-ip]`, port `8000`), or adopt it in UniFi Protect and use the Protect integration. Both expose the camera and a motion binary sensor.
+
+## 📨 Telegram motion alerts
+
+The app can send a message with a photo to Telegram whenever motion is detected (in every recording mode except **On demand**), so the alert reaches your own phone instead of only the camera phone.
+
+1. In Telegram, open [@BotFather](https://t.me/BotFather), send `/newbot` and follow the steps. Copy the **bot token** it gives you (`123456789:ABC...`).
+2. Open a chat with your new bot and send it `/start` (a bot cannot message you first).
+3. Get your **chat ID**: open `https://api.telegram.org/bot<token>/getUpdates` in a browser and copy the number after `"chat":{"id":`. For a group, add the bot to the group, send a message there and use the group's ID (it starts with `-100`).
+4. In the app, go to **Settings > Telegram Alerts**, enter the **Bot Token** and **Chat ID**, enable **Send Motion Alerts to Telegram** and tap **Send Test Message**.
+5. Choose a recording mode other than **On demand** in the web interface.
+
+**Minimum Time Between Alerts** (default 60 seconds) stops a person walking around from sending a message every few seconds. Photos are scaled down to 1280 px so they upload quickly over mobile data. The bot token is stored encrypted on the phone and the photos go only to Telegram.
 
 ## 🔐 HTTPS/TLS certificates
 

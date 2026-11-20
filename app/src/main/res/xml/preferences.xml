@@ -97,6 +97,41 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="telegram_category"
+        android:title="Telegram Alerts">
+        <CheckBoxPreference
+            android:key="telegram_enabled"
+            android:title="Send Motion Alerts to Telegram"
+            android:summary="Send a message with a photo when motion is detected (every recording mode except On demand)"
+            android:defaultValue="false" />
+        <EditTextPreference
+            android:key="telegram_bot_token"
+            android:title="Bot Token"
+            android:summary="Not set"
+            android:defaultValue=""
+            android:inputType="textPassword"
+            android:singleLine="true"
+            android:persistent="false" />
+        <EditTextPreference
+            android:key="telegram_chat_id"
+            android:title="Chat ID"
+            android:summary="Not set"
+            android:defaultValue=""
+            android:singleLine="true" />
+        <EditTextPreference
+            android:key="telegram_cooldown_seconds"
+            android:title="Minimum Time Between Alerts (seconds)"
+            android:summary="60"
+            android:defaultValue="60"
+            android:singleLine="true" />
+        <Preference
+            android:key="telegram_test"
+            android:title="Send Test Message"
+            android:summary="Check the bot token and chat ID"
+            android:persistent="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:title="Startup">
         <EditTextPreference
             android:key="server_port"

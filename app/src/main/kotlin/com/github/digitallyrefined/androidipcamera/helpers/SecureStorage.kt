@@ -33,6 +33,7 @@ class SecureStorage(context: Context) {
         const val KEY_PASSWORD = "secure_password"
         const val KEY_CERT_PASSWORD = "secure_cert_password"
         const val KEY_JWT_SECRET = "secure_jwt_secret"
+        const val KEY_TELEGRAM_TOKEN = "secure_telegram_token"
     }
 
     private fun createEncryptedPreferences(context: Context) = synchronized(initializationLock) {
